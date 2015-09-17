@@ -218,7 +218,7 @@ create_hourly_renewables_profile <- function(wind, solar, gen_forecast,
 # t_annual_sched is a 1 year, hourly schedule of capacity factor of transmission lines
 # t_icap is a forecast of transmission growth, along with the % of 
 # power flow IN to the grid and OUTFLOW (1 - inflow) can be calculated
-add_hourly_transmission_profile <- function(test_profile, t_annual_sched, t_icap){
+add_hourly_transmission_profile <- function(test_profile, t_annual_sched, t_icap,randomize_t=T,sd_level=0.03){
     library(dplyr)
     set.seed(1)
     
@@ -227,7 +227,7 @@ add_hourly_transmission_profile <- function(test_profile, t_annual_sched, t_icap
     lengthen <- ceiling(dim(test_profile)[1]/dim(t_annual_sched)[1])
     
     # add small randomness of 3% to 6% 
-    randomize_transmission <- rnorm(as.numeric(dim(test_profile)[1]),mean=1,sd=0.03)
+    randomize_transmission <- ifelse(randomize_t,rnorm(as.numeric(dim(test_profile)[1]),mean=1,sd=sd_level),1:as.numeric(dim(test_profile)[1]))
     
     # create transmission schedule for all years
     trans_hourly_allyears <- randomize_transmission*rep(t_annual_sched$trans_cap,lengthen)[1:dim(test_profile)[1]]
@@ -1105,7 +1105,9 @@ run_model <- function(        peak_season = c(7,8),
                               pmin_noccp_ng = 0.3,
                               pmin_ccp_ng = 0.85,
                               pmax_ccp_ng = 0.95,
-                              offset_wind_hours=0){
+                              offset_wind_hours=0,
+                              randomize_transmission=T,
+                              transmission_sd =0.03){
     
     peak_season <<- peak_season
     start_year<<-start_year
@@ -1131,6 +1133,8 @@ run_model <- function(        peak_season = c(7,8),
     pmin_ccp_ng <<- pmin_ccp_ng
     pmax_ccp_ng <<- pmax_ccp_ng
     offset_wind_hours <<- offset_wind_hours
+    randomize_transmission <<- randomize_transmission
+    transmission_sd <<- transmission_sd
     
     
     library(dplyr)
@@ -1150,7 +1154,9 @@ run_model <- function(        peak_season = c(7,8),
     
     model_part2 <<- add_hourly_transmission_profile(test_profile=model_part1, 
                                                    t_annual_sched=t_annual_sched, 
-                                                   t_icap=t_icap_gridmodel)
+                                                   t_icap=t_icap_gridmodel,
+                                                   randomize_t=randomize_transmission,
+                                                   sd_level=transmission_sd)
     
 
     

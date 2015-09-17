@@ -42,7 +42,17 @@ library(ggplot2)
 
 
 # plot 1: wind curtailment, annually
-ggplot(annual_analysis, aes(x=year,y=wind_pct_avg_curtail))+geom_bar(stat='identity')
+library(gridExtra)
+plot1 <- ggplot(annual_analysis, aes(x=year,y=wind_pct_avg_curtail))+geom_bar(stat='identity')
+
+library(reshape2)
+test <- select(annual_analysis, year, wind_pct_avg_curtail)
+test <- dcast(test,.~year)
+test[,1] = "Average Wind\n Curtailment %"
+row.names(test)=''
+names(test)[1] = "Year"
+g <- tableGrob(test)
+grid.arrange(plot1,g,nrow=2,heights=c(9/10,1/10))
 
 # plot 2: wind curtailment, monthly average of all years
 ggplot(monthly_analysis%>%group_by(month)%>% 
@@ -57,40 +67,129 @@ ggplot(hourly_analysis%>%group_by(hour)%>%
 
 
 # plot 4: typical curtailment situation
-# http://steffi.ca/thinkR/?p=91
-# http://rpubs.com/kohske/dual_axis_in_ggplot2
-# http://stackoverflow.com/questions/13875637/changing-the-y-axis-text-size-with-doubleyscale-plot
-# http://www.perceptualedge.com/articles/visual_business_intelligence/dual-scaled_axes.pdf
-library(gridExtra)
-
-# subset to year 2017
-# 
-small_df <- select(subset(model_part4,year==2017),date,month, hourly_demand_min_scale, 
-                   hourly_demand_max_scale,season,hour,curtail_pmin,curtail_pmax,gwh_wind_onshore)
-
-df_summary <- small_df %>% group_by(season, month, hour) %>% summarize(demand=(sum(hourly_demand_min_scale)+sum(hourly_demand_max_scale))/2,
-                    wind_curtail = ((sum(curtail_pmin))+(sum(curtail_pmax)))/2,wind_curtail=100*abs(wind_curtail/(sum(gwh_wind_onshore))))
-
-
 
 #spring_fall month = 10
 # summer month 8
 # winter month 12
 
+# http://steffi.ca/thinkR/?p=91
+# http://rpubs.com/kohske/dual_axis_in_ggplot2
+# http://stackoverflow.com/questions/13875637/changing-the-y-axis-text-size-with-doubleyscale-plot
+# http://www.perceptualedge.com/articles/visual_business_intelligence/dual-scaled_axes.pdf
+library(gridExtra)
+library(grid)
+head(small_df)
+head(df_summary)
+head(winter)
+
+
+library(dplyr)
+small_df <- select(subset(model_part4,year==2017),date,month, hourly_demand_min_scale, 
+                   hourly_demand_max_scale,season,hour,curtail_pmin,curtail_pmax,gwh_wind_onshore)
+
+df_summary <- small_df %>% group_by(season, month, hour) %>% summarize(demand=(sum(hourly_demand_min_scale)+sum(hourly_demand_max_scale))/2,
+                                                                       wind_curtail = ((sum(curtail_pmin))+(sum(curtail_pmax)))/2,wind_curtail=100*abs(wind_curtail/(sum(gwh_wind_onshore))))
+head(df_summary)
+# get seasons
+winter <- subset(df_summary,month==12)
+summer <- subset(df_summary,month==8)
+spring_fall <- subset(df_summary,month==10)
+
+
+## make it prettier
+# http://www.ling.upenn.edu/~joseff/rstudy/week4.html
 
 # without ggplot
 # http://robjhyndman.com/hyndsight/r-graph-with-two-y-axes/
 
-winter <- subset(df_summary,month==12)
-head(winter)
+# winter
+
 par(mar=c(5,4,4,5)+.1)
 plot(winter$hour,winter$demand,type="l",col="red",ylab="",xlab="")
 mtext("demand",side=2,line=3)
 par(new=TRUE)
+# try - or + wind curtail
 plot(winter$hour,winter$wind_curtail,,type="l",col="blue",xaxt="n",yaxt="n",xlab="Hour",ylab="")
 axis(4)
 mtext("wind curtailment",side=4,line=3)
-legend("topleft",col=c("red","blue"),lty=1,legend=c("demand","curtailment %"))
+legend("bottomright",col=c("red","blue"),lty=1,legend=c("demand","curtailment %"))
+title("December Averaged Demand and Curtailment Levels by Hour")
+
+# summer
+par(mar=c(5,4,4,5)+.1)
+plot(summer$hour,summer$demand,type="l",col="red",ylab="",xlab="")
+mtext("demand",side=2,line=3)
+par(new=TRUE)
+# try - or + wind curtail
+plot(summer$hour,summer$wind_curtail,,type="l",col="blue",xaxt="n",yaxt="n",xlab="Hour",ylab="")
+axis(4)
+mtext("wind curtailment",side=4,line=3)
+legend("bottomright",col=c("red","blue"),lty=1,legend=c("demand","curtailment %"))
+title("August Averaged Demand and Curtailment Levels by Hour")
+
+
+# spring fall (in most cases)
+par(mar=c(5,4,4,5)+.1)
+plot(spring_fall$hour,spring_fall$demand,type="l",col="red",ylab="",xlab="")
+mtext("demand",side=2,line=3)
+par(new=TRUE)
+# try - or + wind curtail
+plot(spring_fall$hour,spring_fall$wind_curtail,,type="l",col="blue",xaxt="n",yaxt="n",xlab="Hour",ylab="")
+axis(4)
+mtext("wind curtailment",side=4,line=3)
+legend("bottomright",col=c("red","blue"),lty=1,legend=c("demand","curtailment %"))
+title("October Averaged Demand and Curtailment Levels by Hour")
+
+
+## plot 5
+
+a <- model_part4 %>% subset(year==2017 & month ==1 & day %in% 4:8) %>%
+    mutate(base_avg = (hourly_demand_max_scale+hourly_demand_min_scale)/2, 
+           wind_curtail_avg = abs((curtail_pmin+curtail_pmax)/2),
+           solar_curtail_avg=abs((curtail_solar_pmin+curtail_solar_pmax)/2),
+           base_gen_avg = abs((total_base_gen_min+total_base_gen_max)/2)) 
+
+# model_part4
+plot_set <- model_part4 %>% subset(year==2017 & month ==1 & day %in% 4:10) %>%
+    mutate(base_avg = (hourly_demand_max_scale+hourly_demand_min_scale)/2, 
+           wind_curtail_avg = abs((curtail_pmin+curtail_pmax)/2),
+           solar_curtail_avg=abs((curtail_solar_pmin+curtail_solar_pmax)/2),
+           base_gen_avg = abs((total_base_gen_min+total_base_gen_max)/2),
+           wind_produced = gwh_wind_onshore-wind_curtail_avg,
+           solar_produced = gwh_solar - solar_curtail_avg,
+           demand = base_gen_avg+wind_produced+solar_produced) %>%
+    select(day,hour, base_gen_avg,wind_produced, solar_produced,
+           solar_curtail_avg, wind_curtail_avg,demand)%>%
+    unite("day_hour",day,hour) %>%
+    gather("type_gen","gwh",2:6 )
+
+head(plot_set)
+
+ggplot(plot_set,aes(x=factor(day_hour),y=gwh,fill=type_gen,group=type_gen )) + geom_area(position='stack',stat='identity')+
+    scale_fill_brewer()+geom_line(aes(y=demand),stat='identity',colour="black")
+
+
+ggplot(plot_set,aes(x=factor(day_hour),y=gwh,fill=type_gen,group=type_gen )) + geom_area(position='stack',stat='identity')+
+    geom_line(aes(y=demand),stat='identity',colour="black")+
+    scale_fill_manual(labels = c("base_gen_avg", "wind_produced","solar_produced",
+                                   "solar_curtail_avg","wind_curtail_avg"),
+                        values = c("#CCCCCC", "#0066FF", "#FFFF99", 
+                                   "#FFCC00", "#000099"))
+
+
+## plot 6
+
+plot_annual <- annual_analysis %>% mutate(wind_consumed = wind_gen_twh +wind_avg_curtailed_twh,
+                                  solar_consumed = solar_gen_twh + solar_curtailed_avg_twh) %>%
+            select(year,wind_consumed, solar_consumed, total_base_gen_avg_twh) %>%
+            gather("gen_type","twh",2:4)
+
+ggplot(plot_annual,aes(x=year,y=twh,fill=gen_type,group=gen_type))+ geom_area(position='stack',stat='identity')+
+    scale_fill_brewer()+scale_fill_manual(labels= c("base","solar","wind"),
+                                          values = c("grey","orange","blue") )
+
+
+
 
 ##############################################################################
 ######################### Exploration   ######################################
@@ -171,6 +270,7 @@ ggplot(df_no_ws,aes(x=x_seq_no_ws,y=y_seq_no_ws)) + geom_line(stat='identity') +
 # show output and demand
 # NOTE these are summary values, we may have some silly issue 
 # check: the demand sometimes is larger than base load
+library(tidyr)
 demand_plot <- select(hourly_analysis, c(hour,demand_afterT_avg_gwh))
 demand_plot <- unite(demand_plot, yearhr, year, hour)
 supply_plot <- select(hourly_analysis,c(hour,total_base_gen_avg_gwh,wind_gen_gwh,solar_gen_gwh))
@@ -180,8 +280,68 @@ head(demand_plot)
 all_plot <- left_join(supply_plot,demand_plot,by='yearhr')
 
 ggplot(subset(all_plot,yearhr < "2018"), aes(x=yearhr,y=value,fill=gentype,group=gentype))+geom_area(position='stack')+
-    geom_line(aes(y=demand_afterT_avg_gwh),stat='identity')+ coord_cartesian(ylim=c(12000,18000))
+    geom_line(aes(y=demand_afterT_avg_gwh),stat='identity')#+ coord_cartesian(ylim=c(12000,18000))
 
 
 
 
+##### dual-axis plot tests
+
+## method 1
+g.top <- ggplot(winter,aes(x=factor(hour),y=demand,group=1))+geom_line(size=4) +
+    #theme(plot.margin = unit(c(1,5,-30,6),units="points"),
+    #      axis.title.y = element_text(vjust =0.25)) +
+    labs(y = "Demand, TWh")+ggtitle("Local + Net Transmission Demand")
+
+g.bottom <- ggplot(winter, aes(x = factor(hour), y = wind_curtail,group=1)) +
+    geom_line(size=4) +
+    #theme(plot.margin = unit(c(0,5,1,1),units="points")) +
+    labs(x = "Hour", y = "% Wind Curtailed")+ggtitle("Wind Curtail")
+
+## plot graphs and set relative heights
+grid.arrange(g.top,g.bottom, heights = c(2/5, 3/5))
+
+
+# method 2: ggplot
+http://rpubs.com/kohske/dual_axis_in_ggplot2
+summary(winter)
+max_scale=max(winter$demand)
+min_scale=min(winter$demand)
+max_wind = max(winter$wind_curtail)
+min_wind = min(winter$wind_curtail)
+winter <- mutate(winter,wind_scaled = (max_scale-min_scale)*wind_curtail/max_wind+min_scale)
+
+
+library(gtable)
+p1 <- ggplot(winter,aes(x=factor(hour),y=demand,group=1))+geom_line(size=4) +
+    labs(y = "Demand, TWh")+ggtitle("Local + Net Transmission Demand and Wind Curtailment")
+
+p2 <- ggplot(winter, aes(x = factor(hour), y = wind_curtail,group=1)) +
+    geom_line(size=4,colour="blue") +
+    labs(x = "Hour", y = "% Wind Curtailed")+ggtitle("Wind Curtail")+
+    theme(panel.background = element_rect(fill = NA),panel.grid.major=element_blank(),panel.grid.minor=element_blank())
+
+# build
+g1 <- ggplot_gtable(ggplot_build(p1))
+g2 <- ggplot_gtable(ggplot_build(p2))
+
+pp <- c(subset(g1$layout, name == "panel", se = t:r))
+g <- gtable_add_grob(g1, g2$grobs[[which(g2$layout$name == "panel")]], pp$t, 
+                     pp$l, pp$b, pp$l)
+
+# get the left axis data
+ia <- which(g2$layout$name == "axis-l")
+# get all grobs from ia
+ga <- g2$grobs[[ia]]
+# get all children of ga
+ax <- ga$children[[2]]
+# set the width
+ax$widths <- rev(ax$widths)
+#
+ax$grobs <- rev(ax$grobs)
+ax$grobs[[1]]$x <- ax$grobs[[1]]$x - unit(1, "npc") + unit(0.15, "cm")
+g <- gtable_add_cols(g, g2$widths[g2$layout[ia, ]$l], length(g$widths) - 1)
+g <- gtable_add_grob(g, ax, pp$t, length(g$widths) - 1, pp$b)
+
+# draw it
+grid.draw(g)

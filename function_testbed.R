@@ -568,7 +568,9 @@ run_model_v2 <- function(     peak_season = c(7,8),
                               pmin_noccp_ng = 0.3,
                               pmin_ccp_ng = 0.85,
                               pmax_ccp_ng = 0.95,
-                              offset_wind_hours=0){
+                              offset_wind_hours=0,
+                              randomize_transmission =T,
+                              transmission_sd =0.03){
     
     peak_season <<- peak_season
     start_year<<-start_year
@@ -594,6 +596,8 @@ run_model_v2 <- function(     peak_season = c(7,8),
     pmin_ccp_ng <<- pmin_ccp_ng
     pmax_ccp_ng <<- pmax_ccp_ng
     offset_wind_hours <<- offset_wind_hours
+    randomize_transmission <<- randomize_transmission
+    transmission_sd <<- transmission_sd
     
     
     library(dplyr)
@@ -613,7 +617,9 @@ run_model_v2 <- function(     peak_season = c(7,8),
     
     model_part2 <<- add_hourly_transmission_profile(test_profile=model_part1, 
                                                     t_annual_sched=t_annual_sched, 
-                                                    t_icap=t_icap_gridmodel)
+                                                    t_icap=t_icap_gridmodel,
+                                                    randomize_t=randomize_transmission,
+                                                    sd_level=transmission_sd)
     
     
     
@@ -674,8 +680,8 @@ analyze_data_annually_v2 <- function(test_profile) {
             wind_pct_avg_curtail = ((100*abs((sum(curtail_pmin)/1000)/wind_gen_twh))+
                                         (100*abs((sum(curtail_pmax)/1000)/wind_gen_twh)))/2,            
             solar_curtailed_avg_twh = ((sum(curtail_solar_pmin)/1000)+(sum(curtail_solar_pmax)/100))/2,
-            solar_pct_avg_curtail = ((100*abs((sum(curtail_solar_pmin)/1000)/solar_gen_twh+0.0001))+
-                                         (100*abs((sum(curtail_solar_pmax)/1000)/solar_gen_twh+0.0001)))/2,
+            solar_pct_avg_curtail = ((100*abs((sum(curtail_solar_pmin)/1000)/(solar_gen_twh+0.0001) ))+
+                                         (100*abs((sum(curtail_solar_pmax)/1000)/(solar_gen_twh+0.0001) )))/2,
             total_base_gen_avg_twh = (sum(total_base_gen_min)+sum(total_base_gen_max))/2000,
             total_base_gen_avg_util_hours = (sum(total_base_gen_min) + sum(total_base_gen_max) ) /
         (((min(coal_iCap)+min(natgas_iCap)))/500)
@@ -713,8 +719,8 @@ analyze_data_monthly_v2 <- function(test_profile) {
             wind_pct_avg_curtail = ((100*abs((sum(curtail_pmin)/1)/wind_gen_gwh))+
                                         (100*abs((sum(curtail_pmax)/1)/wind_gen_gwh)))/2,            
             solar_curtailed_avg_gwh = ((sum(curtail_solar_pmin)/1)+(sum(curtail_solar_pmax)/100))/2,
-            solar_pct_avg_curtail = ((100*abs((sum(curtail_solar_pmin)/1)/solar_gen_gwh+0.0001))+
-                                         (100*abs((sum(curtail_solar_pmax)/1)/solar_gen_gwh+0.0001)))/2,
+            solar_pct_avg_curtail = ((100*abs((sum(curtail_solar_pmin)/1)/(solar_gen_gwh+0.0001) ))+
+                                         (100*abs((sum(curtail_solar_pmax)/1)/(solar_gen_gwh+0.0001) )))/2,
             total_base_gen_avg_gwh = (sum(total_base_gen_min)+sum(total_base_gen_max))/2,
             total_base_gen_avg_util_hours = (sum(total_base_gen_min) + sum(total_base_gen_max) ) /
                 (((min(coal_iCap)+min(natgas_iCap)))/500)
@@ -752,8 +758,8 @@ analyze_data_hourly_v2 <- function(test_profile) {
             wind_pct_avg_curtail = ((100*abs((sum(curtail_pmin)/1)/wind_gen_gwh))+
                                         (100*abs((sum(curtail_pmax)/1)/wind_gen_gwh)))/2,            
             solar_curtailed_avg_gwh = ((sum(curtail_solar_pmin)/1)+(sum(curtail_solar_pmax)/100))/2,
-            solar_pct_avg_curtail = ((100*abs((sum(curtail_solar_pmin)/1)/solar_gen_gwh+0.0001))+
-                                         (100*abs((sum(curtail_solar_pmax)/1)/solar_gen_gwh+0.0001)))/2,
+            solar_pct_avg_curtail = ((100*abs((sum(curtail_solar_pmin)/1)/(solar_gen_gwh+0.0001) ))+
+                                         (100*abs((sum(curtail_solar_pmax)/1)/(solar_gen_gwh+0.0001) )))/2,
             total_base_gen_avg_gwh = (sum(total_base_gen_min)+sum(total_base_gen_max))/2,
             total_base_gen_avg_util_hours = (sum(total_base_gen_min) + sum(total_base_gen_max) ) /
                 (((min(coal_iCap)+min(natgas_iCap)))/500)
@@ -793,8 +799,8 @@ analyze_data_quarterly_v2 <- function(test_profile) {
             wind_pct_avg_curtail = ((100*abs((sum(curtail_pmin)/1)/wind_gen_gwh))+
                                         (100*abs((sum(curtail_pmax)/1)/wind_gen_gwh)))/2,            
             solar_curtailed_avg_gwh = ((sum(curtail_solar_pmin)/1)+(sum(curtail_solar_pmax)/100))/2,
-            solar_pct_avg_curtail = ((100*abs((sum(curtail_solar_pmin)/1)/solar_gen_gwh+0.0001))+
-                                         (100*abs((sum(curtail_solar_pmax)/1)/solar_gen_gwh+0.0001)))/2,
+            solar_pct_avg_curtail = ((100*abs((sum(curtail_solar_pmin)/1)/(solar_gen_gwh+0.0001) ))+
+                                         (100*abs((sum(curtail_solar_pmax)/1)/(solar_gen_gwh+0.0001) )))/2,
             total_base_gen_avg_gwh = (sum(total_base_gen_min)+sum(total_base_gen_max))/2,
             total_base_gen_avg_util_hours = (sum(total_base_gen_min) + sum(total_base_gen_max) ) /
                 (((min(coal_iCap)+min(natgas_iCap)))/500)
