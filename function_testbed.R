@@ -103,7 +103,7 @@ add_hourly_load_profile_v2 <- function(test_profile,
     
     
     print("Wind after step 1, initial transmission:")
-    print(test_profile %>% summarize(wind_after_t = sum(wind_after_transmission)))
+    print(test_profile %>% summarise(wind_after_t = sum(wind_after_transmission)))
     
     # step 2
     # after the outflow of w/s from step 1, how much of it in GW is alotted for wind+solar
@@ -168,7 +168,7 @@ add_hourly_load_profile_v2 <- function(test_profile,
     
     # print results for sanity check
     trans_reductions <- test_profile %>% group_by(year) %>% 
-        summarize(wind_before = sum(gwh_wind_onshore),
+        summarise(wind_before = sum(gwh_wind_onshore),
                   wind_after_trans = sum(wind_after_transmission),
                   solar_before = sum(gwh_solar),
                   solar_after_trans=sum(solar_after_transmission),
@@ -196,7 +196,7 @@ add_hourly_load_profile_v2 <- function(test_profile,
     # need to scale the min demand value upward by value/min(load_for_season)
     min_load_for_season <- seasonal_hourly_load %>% 
         group_by(season) %>%
-        summarize(min_val = min(pct_load))
+        summarise(min_val = min(pct_load))
     test_profile <- left_join(test_profile,data.frame(min_load_for_season),by="season")
     
     # scale by month as well
@@ -222,7 +222,7 @@ add_hourly_load_profile_v2 <- function(test_profile,
     # verify results
     
     results_printout <- test_profile %>% group_by(year) %>% 
-        summarize( min_scale_min = min(hourly_demand_min_scale),
+        summarise( min_scale_min = min(hourly_demand_min_scale),
                    max_scale_min=max(hourly_demand_min_scale),
                    min_scale_max = min(hourly_demand_max_scale),
                    max_scale_max=max(hourly_demand_max_scale),
@@ -511,7 +511,7 @@ calculate_curtailment_v2 <- function(test_profile,
     min_peak_by_month <- min(test_profile$relative_peak)
     
     printout <- test_profile %>% group_by(year) %>% 
-        summarize(demand_max = round(sum(relative_peak*pct_load*max_gw),2),
+        summarise(demand_max = round(sum(relative_peak*pct_load*max_gw),2),
                   demand_min = round(sum((pct_load/min_val) * (relative_peak/min_peak_by_month) * min_gw),2),
                   pmin_curtailed = round(sum(curtail_pmin),2),
                   pmax_curtailed = round(sum(curtail_pmax),2),
@@ -651,6 +651,7 @@ run_model_v2 <- function(     peak_season = c(7,8),
                                           pmin_noccp_ng = pmin_noccp_ng,
                                           pmin_ccp_ng = pmin_ccp_ng,
                                           pmax_ccp_ng = )
+    
     
 }
 
@@ -811,4 +812,90 @@ analyze_data_quarterly_v2 <- function(test_profile) {
     print('Annual data analysis: ')
     print(printout)
     printout
+}
+
+
+
+
+sim_2_pdf <- function(filename='base_sim',
+                      gm = 'zjk',
+                      ssm = 'zjk',
+                      tm = 'dem_scale',
+                      ts = 1,
+                      wsf = 0.9,
+                      tp=24,
+                      sr = 1.08,
+                      rcc = 0.4,
+                      etcr=1) {
+    get_grid_model(gridmodel = gm,
+                   special_subset_model = ssm,
+                   seasonal_hourly_load=seasonal_hourly_load,
+                   monthly_demand_profile=monthly_demand_profile,
+                   annual_demand=annual_demand,
+                   ccp_season=ccp_season,
+                   generation_forecast=generation_forecast,
+                   wind=wind,
+                   solar_month=solar_month,
+                   solar_day=solar_day,
+                   t_sched=t_sched,
+                   t_icap=t_icap,
+                   growth_cases,
+                   growth_case = 'noscale',
+                   demand_scale = 1,
+                   transmission_model = tm,
+                   transmission_scale = ts)
+    
+    # update this every time we want a NEW simulation
+    run_model_v2(     peak_season = c(12,1,2,6,7,8),
+                      start_year="2012",
+                      end_year="2025",
+                      wind_scale_factor=wsf,
+                      solar_scale_factor=1,
+                      time_period=tp,
+                      wind_transmission_share = 0,
+                      solar_transmission_share = 0,                  
+                      extra_trans_capacity_renewables = etcr,   
+                      gw_load_base_wind_ratio = 0,
+                      gw_load_base_solar_ratio = 0,
+                      max_option = 1,
+                      spinning_reserve=sr,
+                      r_ccp_coal = rcc,
+                      r_ccp_ng = 0.9,
+                      pmin_noccp_coal = 0.5,
+                      pmin_ccp_coal = 0.85,
+                      pmax_ccp_coal = 0.95,
+                      pmin_noccp_ng = 0.3,
+                      pmin_ccp_ng = 0.85,
+                      pmax_ccp_ng = 0.95,
+                      offset_wind_hours=0,
+                      randomize_transmission =T,
+                      transmission_sd =0.03)
+    
+    
+    
+    # this analyzes the results
+    annual_analysis <- analyze_data_annually_v2(test_profile=model_part4) 
+    monthly_analysis <- analyze_data_monthly_v2(test_profile=model_part4)
+    quarterly_analysis <- analyze_data_quarterly_v2(test_profile=model_part4)
+    hourly_analysis <- analyze_data_hourly_v2(test_profile=model_part4)
+    
+    ggplot(annual_analysis, aes(x=factor(year),y=wind_pct_avg_curtail))+geom_bar(stat='identity')+
+        theme(text = element_text(size=20)) +ggtitle("Annual Curtailment of Wind (Average)") +
+        geom_text(aes(label=wind_pct_avg_curtail), vjust=4,colour="white")
+    
+    
+    pdf(paste("data/",filename,".pdf",sep=''))
+    print(plot1(annual_analysis))
+    print(plot2(monthly_analysis))
+    print(plot3(hourly_analysis))
+    df <- plot4_pre_clean(model_part4)
+    plot4_aug(df)
+    plot4_oct(df)
+    plot4_dec(df)
+    print(plot5(model_part4,ye=2017,mo=1,days=4:10))
+    print(plot6(annual_analysis))
+    dev.off()
+    
+    
+    
 }

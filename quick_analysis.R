@@ -8,9 +8,19 @@ source("function_testbed.R")
 
 # this runs the sumulation
 
+gm = 'zjk'
+ssm = 'zjk'
+tm = 'dem_scale'
+ts = 1
+wsf = 0.9
+tp=24
+sr = 1.08
+rcc = 0.4
+
+
 # update this every time we want a NEW grid model
-get_grid_model(gridmodel = 'zjk',
-               special_subset_model = 'zjk',
+get_grid_model(gridmodel = gm,
+               special_subset_model = ssm,
                seasonal_hourly_load=seasonal_hourly_load,
                monthly_demand_profile=monthly_demand_profile,
                annual_demand=annual_demand,
@@ -24,24 +34,24 @@ get_grid_model(gridmodel = 'zjk',
                growth_cases,
                growth_case = 'noscale',
                demand_scale = 1,
-               transmission_model = "dem_scale",
-               transmission_scale = 1)
+               transmission_model = tm,
+               transmission_scale = ts)
 
 # update this every time we want a NEW simulation
 run_model_v2(     peak_season = c(12,1,2,6,7,8),
                   start_year="2012",
                   end_year="2025",
-                  wind_scale_factor=0.9,
+                  wind_scale_factor=wsf,
                   solar_scale_factor=1,
-                  time_period=12,
+                  time_period=tp,
                   wind_transmission_share = 0,
                   solar_transmission_share = 0,                  
                   extra_trans_capacity_renewables = 1,   
                   gw_load_base_wind_ratio = 0,
                   gw_load_base_solar_ratio = 0,
                   max_option = 1,
-                  spinning_reserve=1.08,
-                  r_ccp_coal = 0.13,
+                  spinning_reserve=sr,
+                  r_ccp_coal = rcc,
                   r_ccp_ng = 0.9,
                   pmin_noccp_coal = 0.5,
                   pmin_ccp_coal = 0.85,
@@ -49,7 +59,9 @@ run_model_v2(     peak_season = c(12,1,2,6,7,8),
                   pmin_noccp_ng = 0.3,
                   pmin_ccp_ng = 0.85,
                   pmax_ccp_ng = 0.95,
-                  offset_wind_hours=0)
+                  offset_wind_hours=0,
+                  randomize_transmission =T,
+                  transmission_sd =0.03)
 
 
 
@@ -59,10 +71,22 @@ monthly_analysis <- analyze_data_monthly_v2(test_profile=model_part4)
 quarterly_analysis <- analyze_data_quarterly_v2(test_profile=model_part4)
 hourly_analysis <- analyze_data_hourly_v2(test_profile=model_part4)
 
-
 ggplot(annual_analysis, aes(x=factor(year),y=wind_pct_avg_curtail))+geom_bar(stat='identity')+
     theme(text = element_text(size=20)) +ggtitle("Annual Curtailment of Wind (Average)") +
     geom_text(aes(label=wind_pct_avg_curtail), vjust=4,colour="white")
+
+
+pdf(paste("data/",filename,".pdf",sep=''))
+plot1(annual_analysis)
+plot2(monthly_analysis)
+plot3(hourly_analysis)
+df <- plot4_pre_clean(model_part4)
+plot4_aug(df)
+plot4_oct(df)
+plot4_dec(df)
+plot5(model_part4,ye=2017,mo=1,days=4:10)
+plot6(annual_analysis)
+dev.off()
 
 # ggplot(annual_analysis, aes(x=factor(year),y=total_base_gen_avg_util_hours))+geom_bar(stat='identity')+
 #     theme(text = element_text(size=20)) +ggtitle("Avg Util Hours") +
@@ -149,3 +173,22 @@ appendWorksheet(wb, data.frame(monthly_analysis),sheet="monthly_analysis")
 appendWorksheet(wb, data.frame(quarterly_analysis),sheet="quarterly_analysis")
 appendWorksheet(wb, data.frame(hourly_analysis),sheet="hourly_analysis")
 saveWorkbook(wb)
+
+
+
+
+
+##########
+
+
+sim_2_pdf(filename="Yimin grid node",
+          gm="ym",
+          ssm="ym",
+          tm="hlbe_scale",
+          ts=0.65,
+          wsf=1.4,
+          tp=24,
+          sr=1.15,
+          rcc=0,
+          etcr=0)
+
