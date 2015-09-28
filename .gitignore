@@ -1,0 +1,36 @@
+.RData
+.Rhistory
+Untitled (1).R
+Untitled.R
+clean_functions.R
+clean_functions_v2_run_files.R
+conference_demo.R
+curtailment_functions.R
+data/
+debug.R
+demand.R
+elimination (1).R
+elimination.R
+generation.R
+graphing (1).R
+hle_annual_demand_by_hour.pdf
+intro-models.R
+kniter_file.html
+kniter_file_cache/
+kniter_file_files/
+log_histogram.pdf
+objective1.R
+output.xlsx
+p1test.pdf
+priority-uc.R
+sensitivity_simulations.R
+sensitvity_take2.R
+server (1).R
+sourced_files.R
+unit-commitment-optimization.R
+wind (1).R
+wind.R
+wind_curtail_example.pdf
+wind_curtail_histogram.pdf
+wind_monthly.pdf
+wind_time_1.pdf
