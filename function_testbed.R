@@ -365,7 +365,7 @@ calculate_curtailment_v2 <- function(test_profile,
     # if supply > demand, we must curtail coal 
     # NOTE: gen_pmin_min is coal+natgas output AFTER transmission input
     test_profile <- mutate(test_profile, coal_curtail_pmin =
-                               ifelse(hourly_demand_min_scale < gen_pmin_min, hourly_demand_min_scale - gen_pmin_min , 0) )
+           ifelse(hourly_demand_min_scale < gen_pmin_min, hourly_demand_min_scale - gen_pmin_min , 0) )
     
     
     # the amount to curtail, used in the case of solar vs wind ratio curtailment
@@ -375,13 +375,16 @@ calculate_curtailment_v2 <- function(test_profile,
     # the following values:
     # wind_transmission_share = 0
     # solar_transmission_share = 0
-    # 
-    test_profile<- mutate(test_profile,curtail_renewables_amount_pmin = hourly_demand_min_scale - gen_pmin_min - 
-                              - wind_after_transmission - solar_after_transmission ) 
+
+  
+    test_profile<- mutate(test_profile,curtail_renewables_amount_pmin = hourly_demand_min_scale - 
+                              gen_pmin_min - wind_after_transmission - solar_after_transmission) 
     test_profile <- mutate(test_profile, curtail_renewables_amount_pmin = 
                                ifelse(curtail_renewables_amount_pmin >0,0,curtail_renewables_amount_pmin))
-    
-    
+    # if coal is curtailed, curtail all  renewables
+    test_profile <- mutate(test_profile, curtail_renewables_amount_pmin = 
+               ifelse(coal_curtail_pmin < 0, - wind_after_transmission - solar_after_transmission,
+                      curtail_renewables_amount_pmin))
     
     
     # calculate curtailment of WIND
@@ -449,6 +452,10 @@ calculate_curtailment_v2 <- function(test_profile,
     test_profile <- mutate(test_profile, curtail_renewables_amount_pmax = 
                                ifelse(curtail_renewables_amount_pmax >0,0,curtail_renewables_amount_pmax))
     
+    test_profile <- mutate(test_profile, curtail_renewables_amount_pmax = 
+                               ifelse(coal_curtail_pmax < 0, - wind_after_transmission - solar_after_transmission,
+                                      curtail_renewables_amount_pmax))
+    
     
     # calculate curtailment
     test_profile <- mutate(test_profile, curtail_pmax = 
@@ -486,17 +493,27 @@ calculate_curtailment_v2 <- function(test_profile,
                            # total gen from base load (local+t_out)
                            
                            # base generation is
-                           # demand + transmission inflow - transmission outflow
-                           # - all wind - all solar 
-                           # add back in the amount of wind/solar curtailed
+                           # hourly demand: local demand - transmission inflow + transmission outflow
+                           # renewables: wind and solar original
+                           # remove amount of wind/solar curtailed
                            # - any coal/baseload curtailed 
                            # NOTE: curtailment is a NEGATIVE number
                            # so pay attention to the signs
-                           total_base_gen_min = hourly_demand_min_scale - gwh_wind_onshore - gwh_solar -
-                               curtail_pmin - curtail_solar_pmin + coal_curtail_pmin,
-                           total_base_gen_max = hourly_demand_max_scale - gwh_wind_onshore - gwh_solar -
-                               curtail_pmax - curtail_solar_pmax + coal_curtail_pmax
-                           
+                           total_base_gen_min = ifelse(coal_curtail_pmin < 0, hourly_demand_min_scale,
+                                                       hourly_demand_min_scale - wind_after_transmission - solar_after_transmission -
+                                                           curtail_pmin - curtail_solar_pmin ),
+#                            total_base_gen_min = ifelse(coal_curtail_pmin < 0, hourly_demand_min_scale,
+#                                                        hourly_demand_min_scale - gwh_wind_onshore - gwh_solar -
+#                                                            curtail_pmin - curtail_solar_pmin ),
+                         
+                                                        
+                            total_base_gen_max = ifelse(coal_curtail_pmax < 0, hourly_demand_max_scale,
+                                                        hourly_demand_max_scale - wind_after_transmission - solar_after_transmission -
+                                                            curtail_pmax - curtail_solar_pmax )
+#                             total_base_gen_max = ifelse(coal_curtail_pmax < 0, hourly_demand_max_scale,
+#                                                         hourly_demand_max_scale - gwh_wind_onshore - gwh_solar -
+#                                                             curtail_pmax - curtail_solar_pmax )
+
                            
                            # if total trans out minus wind+solar t_out is greater than remaining installed capacity (minus demand)
                            # then output is the leftover base generation available, otherwise its the total transmission out available
@@ -826,7 +843,8 @@ sim_2_pdf <- function(filename='base_sim',
                       tp=24,
                       sr = 1.08,
                       rcc = 0.4,
-                      etcr=1) {
+                      etcr=1,
+                      an = 'none') {
     get_grid_model(gridmodel = gm,
                    special_subset_model = ssm,
                    seasonal_hourly_load=seasonal_hourly_load,
@@ -843,7 +861,8 @@ sim_2_pdf <- function(filename='base_sim',
                    growth_case = 'noscale',
                    demand_scale = 1,
                    transmission_model = tm,
-                   transmission_scale = ts)
+                   transmission_scale = ts,
+                   annual_demand_model = an)
     
     # update this every time we want a NEW simulation
     run_model_v2(     peak_season = c(12,1,2,6,7,8),
@@ -874,10 +893,10 @@ sim_2_pdf <- function(filename='base_sim',
     
     
     # this analyzes the results
-    annual_analysis <- analyze_data_annually_v2(test_profile=model_part4) 
-    monthly_analysis <- analyze_data_monthly_v2(test_profile=model_part4)
-    quarterly_analysis <- analyze_data_quarterly_v2(test_profile=model_part4)
-    hourly_analysis <- analyze_data_hourly_v2(test_profile=model_part4)
+    annual_analysis <<- analyze_data_annually_v2(test_profile=model_part4) 
+    monthly_analysis <<- analyze_data_monthly_v2(test_profile=model_part4)
+    quarterly_analysis <<- analyze_data_quarterly_v2(test_profile=model_part4)
+    hourly_analysis <<- analyze_data_hourly_v2(test_profile=model_part4)
     
     ggplot(annual_analysis, aes(x=factor(year),y=wind_pct_avg_curtail))+geom_bar(stat='identity')+
         theme(text = element_text(size=20)) +ggtitle("Annual Curtailment of Wind (Average)") +

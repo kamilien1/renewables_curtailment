@@ -5,17 +5,26 @@
 # and reads in the source file
 source("clean_functions_v2.R")
 source("function_testbed.R")
+source("graphing.R")
 
 # this runs the sumulation
 
-gm = 'zjk'
-ssm = 'zjk'
-tm = 'dem_scale'
-ts = 1
-wsf = 0.9
+
+gm="jjt"
+ssm="jjt"
+tm="dem_scale"
+ts=1
+wsf=1
 tp=24
-sr = 1.08
-rcc = 0.4
+sr=1.08
+rcc=0.4
+wts = 0
+sts = 0
+etcr=0.6
+
+wts=0
+sts = 0
+
 
 
 # update this every time we want a NEW grid model
@@ -44,9 +53,9 @@ run_model_v2(     peak_season = c(12,1,2,6,7,8),
                   wind_scale_factor=wsf,
                   solar_scale_factor=1,
                   time_period=tp,
-                  wind_transmission_share = 0,
-                  solar_transmission_share = 0,                  
-                  extra_trans_capacity_renewables = 1,   
+                  wind_transmission_share = wts,
+                  solar_transmission_share = sts,                  
+                  extra_trans_capacity_renewables = etcr,   
                   gw_load_base_wind_ratio = 0,
                   gw_load_base_solar_ratio = 0,
                   max_option = 1,
@@ -71,10 +80,28 @@ monthly_analysis <- analyze_data_monthly_v2(test_profile=model_part4)
 quarterly_analysis <- analyze_data_quarterly_v2(test_profile=model_part4)
 hourly_analysis <- analyze_data_hourly_v2(test_profile=model_part4)
 
+plot5_double_lines(model_part4,ye=2025,mo=1,days=4:10)
+
+library(gridExtra,verbose=F)
+plot1(annual_analysis)
+plot2(monthly_analysis)
+plot3(hourly_analysis)
+df <- plot4_pre_clean(model_part4)
+plot4_aug(df)
+plot4_oct(df)
+plot4_dec(df)
+plot5_double_lines(model_part4,ye=2017,mo=1,days=4:10)
+plot6(annual_analysis)
+plot7(annual_analysis)
+
+
 ggplot(annual_analysis, aes(x=factor(year),y=wind_pct_avg_curtail))+geom_bar(stat='identity')+
     theme(text = element_text(size=20)) +ggtitle("Annual Curtailment of Wind (Average)") +
     geom_text(aes(label=wind_pct_avg_curtail), vjust=4,colour="white")
 
+plot5(model_part4,ye=2017,mo=1,days=4:10)
+plot5_double_lines(model_part4,ye=2017,mo=1,days=4:10)
+p5 <- model_part4 %>% subset(year==2017 &month==1 & day %in% 4:10 )
 
 pdf(paste("data/",filename,".pdf",sep=''))
 plot1(annual_analysis)
@@ -181,14 +208,15 @@ saveWorkbook(wb)
 ##########
 
 
-sim_2_pdf(filename="Yimin grid node",
-          gm="ym",
-          ssm="ym",
-          tm="hlbe_scale",
-          ts=0.65,
-          wsf=1.4,
+sim_2_pdf(filename="Zhangjiakou_Olympics_High_RE_T",
+          gm="zjk_olympics",
+          ssm="zjk",
+          tm="dem_scale",
+          ts=1,
+          wsf=0.9,
           tp=24,
-          sr=1.15,
-          rcc=0,
-          etcr=0)
+          sr=1.08,
+          rcc=0.4,
+          etcr=1)
 
+plot5(model_part4,ye=2017,mo=1,days=4:10)

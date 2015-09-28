@@ -14,6 +14,7 @@ library(ggplot2)
 # warning message!
 subset_gridmodel <- function(df, gridmodel, filename, default_grid_model = 'jjt'){
     library(dplyr)
+    
     models <- unique(df$grid_model)
     if(!(gridmodel %in% models)){
         print(cat('WARNING: grid model \"',gridmodel,'\" not found for file \"',filename,'\". Using ', 

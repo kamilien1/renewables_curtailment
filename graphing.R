@@ -45,6 +45,8 @@ library(gridExtra,verbose=F)
 
 # plot 1: wind curtailment, annually
 
+
+
 plot1 <- function(annual_analysis) {
 #     library(gridExtra)
 #     plot1 <- 
@@ -115,13 +117,12 @@ plot3 <- function(hourly_analysis){
 # library(gridExtra)
 # library(grid)
 
-plot4_pre_clean <- function(model_part4){
+plot4_pre_clean <- function(df_pc, ye = 2017){
     library(dplyr,verbose=F)
-    plot4_year = 2017
-    small_df <- select(subset(model_part4,year==plot4_year),date,month, hourly_demand_min_scale, 
+
+    small_df <- select(subset(df_pc,year==ye),date,month,year, hourly_demand_min_scale, 
                        hourly_demand_max_scale,season,hour,curtail_pmin,curtail_pmax,gwh_wind_onshore)
-    
-    df_summary <- small_df %>% group_by(season, month, hour) %>% 
+    df_summary <- small_df %>% group_by(year, season, month, hour) %>% 
         summarise(demand=(sum(hourly_demand_min_scale)+sum(hourly_demand_max_scale))/2,
            wind_curtail = ((sum(curtail_pmin))+(sum(curtail_pmax)))/2,
            wind_curtail=100*abs(wind_curtail/(sum(gwh_wind_onshore))))
@@ -153,11 +154,15 @@ plot4_aug <- function(df_summary){
     mtext("GWh\nDemand",side=2,line=3)
     par(new=TRUE)
     # try - or + wind curtail
-    plot(summer$hour,summer$wind_curtail,,type="l",lwd=4,col="#6B90FF",xaxt="n",yaxt="n",xlab="",ylab="",xlim=c(0,23))
+    plot(summer$hour,summer$wind_curtail,,type="l",lwd=4,col="#6B90FF",
+         xaxt="n",yaxt="n",xlab="",ylab="",xlim=c(0,23))
     axis(4)
     mtext("Wind Curtailment\nPercentage",side=4,line=3)
-    legend("bottomright",inset=c(0.1,0),col=c("black","#6B90FF"),lty=1,lwd=4,legend=c("Demand","Wind Curtailment"))
-    title("August 2017 Hourly Average Demand \nand Curtailment Levels")
+    legend("bottomright",inset=c(0.1,0),col=c("black","#6B90FF"),
+           lty=1,lwd=4,legend=c("Demand","Wind Curtailment"))
+    
+    tit <- paste("August ",as.character(unique(df_summary$year))," Hourly Average Demand \nand Curtailment Levels",sep='')
+    title(tit)
 }
 # plot4_aug(df_summary)
 
@@ -179,7 +184,8 @@ plot4_oct <- function(df_summary){
     axis(4)
     mtext("Wind Curtailment\nPercentage",side=4,line=3)
     legend("bottomright",inset=c(0.1,0),col=c("black","#6B90FF"),lty=1,lwd=4,legend=c("Demand","Wind Curtailment"))
-    title("October 2017 Hourly Average Demand \nand Curtailment Levels")
+    tit <- paste("October ",as.character(unique(df_summary$year))," Hourly Average Demand \nand Curtailment Levels",sep='')
+    title(tit)
 }
 # plot4_oct(df_summary)
 
@@ -201,20 +207,46 @@ plot4_dec <- function(df_summary){
     axis(4)
     mtext("Wind Curtailment\nPercentage",side=4,line=3)
     legend("bottomright",inset=c(0.1,0),col=c("black","#6B90FF"),lty=1,lwd=4,legend=c("Demand","Wind Curtailment"))
-    title("December 2017 Hourly Average Demand \nand Curtailment Levels")
+    tit <- paste("December ",as.character(unique(df_summary$year))," Hourly Average Demand \nand Curtailment Levels",sep='')
+    title(tit)
 }
 # plot4_dec(df_summary)
+
+plot4_month <- function(df_summary,mo=1){
+    # month 12
+    library(Hmisc,verbose=F)
+    winter <- subset(df_summary,month==mo)
+    par(mar=c(5,6,4,5),bg='white')
+    plot(winter$hour,winter$demand,type="l",lwd=4,col="red",ylab="",xlab="",xlim=c(0,23),ylim=c(0,max(winter$demand)),xaxs='i')
+    abline(v=winter$hour,col='#E4E4E4',lwd=80)
+    grid(lwd="1",lty=1,col='white')
+    minor.tick(nx=2,ny=2,tick.ratio=0.5)
+    axis(1, tck=1,lwd=0.5,at=seq(0,25,2.5), col.ticks="white",labels=F)
+    lines(winter$hour,winter$demand,type="l",lwd=4,col="black",ylab="",xlab="",xlim=c(0,23))
+    mtext("GWh\nDemand",side=2,line=3)
+    par(new=TRUE)
+    # try - or + wind curtail
+    plot(winter$hour,winter$wind_curtail,,type="l",lwd=4,col="#6B90FF",xaxt="n",yaxt="n",xlab="",ylab="",xlim=c(0,23))
+    axis(4)
+    mtext("Wind Curtailment\nPercentage",side=4,line=3)
+    legend("bottomright",inset=c(0.1,0),col=c("black","#6B90FF"),lty=1,lwd=4,legend=c("Demand","Wind Curtailment"))
+    tit <- paste(mo,'-',as.character(unique(df_summary$year)),
+    " Hourly Average Demand \nand Curtailment Levels",sep='')
+    title(tit)
+}
+
+
 
 
 ## plot 5
 
-plot5 <- function(model_part4,ye=2017,mo=1,days=4:10){
+plot5 <- function(df,ye=2017,mo=1,days=4:10){
     # model_part4
     library(tidyr)
     ye = as.numeric(ye)
     mo = as.numeric(mo)
     days = as.numeric(days)
-    plot_set <- model_part4 %>% subset(year==ye & month == mo & day %in% days) %>%
+    plot_set <- df %>% subset(year==ye & month == mo & day %in% days) %>%
         mutate(base_avg = (hourly_demand_max_scale+hourly_demand_min_scale)/2, 
                wind_curtail_avg = abs((curtail_pmin+curtail_pmax)/2),
                solar_curtail_avg=abs((curtail_solar_pmin+curtail_solar_pmax)/2),
@@ -244,44 +276,60 @@ plot5 <- function(model_part4,ye=2017,mo=1,days=4:10){
               axis.text = element_text(size=16))+
         guides(fill=guide_legend(nrow=2,byrow=T))
 }
-#plot5(model_part4,ye=2017,mo=1,days=7:14)
+#plot5(model_part4,ye=2025,mo=1,days=9)
 
 
 
-plot5_test <- function(model,ye=2017,mo=1,days=4:10){
 
-    plot_set <- model %>% subset(year==ye & month == mo & day %in% days) %>%
+plot5_double_lines <- function(df,ye=2017,mo=1,days=4:10){
+    # model_part4
+    library(tidyr)
+    ye = as.numeric(ye)
+    mo = as.numeric(mo)
+    days = as.numeric(days)
+    plot_set <- df %>% subset(year==ye & month == mo & day %in% days) %>%
         mutate(base_avg = (hourly_demand_max_scale+hourly_demand_min_scale)/2, 
                wind_curtail_avg = abs((curtail_pmin+curtail_pmax)/2),
                solar_curtail_avg=abs((curtail_solar_pmin+curtail_solar_pmax)/2),
                base_gen_avg = abs((total_base_gen_min+total_base_gen_max)/2),
                wind_produced = gwh_wind_onshore-wind_curtail_avg,
                solar_produced = gwh_solar - solar_curtail_avg,
-               demand = base_gen_avg+wind_produced+solar_produced) %>%
+               # demand profile INCLUDING transmission
+               demand_t = base_gen_avg+wind_produced+solar_produced,
+               # demand profile EXCLUDING transmission
+               demand_no_t = (hourly_demand_max_scale+hourly_demand_min_scale)/2,
+               gen_pmin = (gen_pmin_min+gen_pmax_min)/2) %>%
         select(day,hour,date, base_gen_avg,wind_produced, solar_produced,
-               solar_curtail_avg, wind_curtail_avg,demand)%>%
+               solar_curtail_avg, wind_curtail_avg,demand_t,demand_no_t,gen_pmin,base_avg)%>%
         unite("day_hour",day,hour) %>%
         gather("type_gen","gwh",base_gen_avg:wind_curtail_avg )
     
-    ggplot(plot_set,aes(x=hour,y=gwh,fill=type_gen,group=type_gen ))+geom_area(position='stack',stat='identity')
-
-#     
-#     ggplot(plot_set,aes(x=date,y=gwh,fill=type_gen,group=type_gen )) + geom_area(position='stack',stat='identity')+
-#         geom_line(aes(y=demand),stat='identity',colour="black")+
-#         scale_fill_manual(labels = c("Base Generation","Wind Consumed","Solar Consumed",
-#                                      "Solar Curtailed","Wind Curtailed"),
-#                           values = c("#BAC2D9", "#6B90FF", "#FFB846", 
-#                                      "#F3FF0A", "#C2D1FF"), name="Load \nType")+
-#         theme(axis.text.x=element_text(angle=45,hjust=1,vjust=0.5))+
-#         ylab("GWh")+xlab("")+ggtitle("2017 Hourly Load Profile and Curtailment")+
-#         theme(legend.text=element_text(size=14),
-#               legend.title=element_text(size=16,face='bold'),
-#               axis.title=element_text(size=16,face='bold'),
-#               plot.title=element_text(size=18,face='bold'),
-#               legend.position='bottom',
-#               axis.text = element_text(size=16))
+    
+    
+    gtitle <- paste(ye," Simulation Hourly Demand,\nCurtailment",sep="")
+    
+    ggplot(plot_set,aes(x=date,y=gwh,fill=type_gen,group=type_gen )) + 
+        geom_area(position='stack',stat='identity')+
+        geom_line(aes(y=demand_t),stat='identity',colour="black")+
+        geom_line(aes(y=demand_no_t),stat='identity',colour="white")+
+        #geom_line(aes(y=gen_pmin),stat='identity',colour='black',size=2,linetype=2)+
+        scale_fill_manual(labels = c("Base Generation","Wind Consumed","Solar Consumed",
+                                     "Solar Curtailed","Wind Curtailed"),
+                          values = c("#BAC2D9", "#6B90FF", "#FFB846", 
+                                     "#F3FF0A", "light green"), name="Load \nType")+
+        theme(axis.text.x=element_text(angle=45,hjust=1,vjust=0.5))+
+        ylab("GWh")+xlab("")+ggtitle(gtitle)+
+        theme(legend.text=element_text(size=14),
+              legend.title=element_text(size=16,face='bold'),
+              axis.title=element_text(size=16,face='bold'),
+              plot.title=element_text(size=18,face='bold'),
+              legend.position='bottom',
+              axis.text = element_text(size=16))+
+        guides(fill=guide_legend(nrow=2,byrow=T))
+    
 }
-#plot5(model_part4,ye=2017,mo=1,days=7:14)
+
+#plot5_double_lines(model_part4,ye=2014,mo=1,days=10:12)
 
 
 
@@ -305,7 +353,21 @@ plot6 <- function(annual_analysis){
 } 
 # plot6(annual_analysis)
 
-
+plot7 <- function(aa) {
+    
+    ggplot(aa,
+           aes(x=factor(year),y=total_base_gen_avg_util_hours))+geom_bar(stat='identity')+
+        xlab("")+ylab("Hours")+ggtitle("Base Generation Utilizaiton Hours\nIncluding Outflow Transmission")+
+        theme(legend.text=element_text(size=15),
+              legend.title=element_text(size=16,face='bold'),
+              axis.title=element_text(size=14,face='bold'),
+              plot.title=element_text(size=18,face='bold'),
+              legend.position='bottom',
+              axis.text = element_text(size=14),
+              axis.text.x=element_text(angle=45,hjust=1,vjust=0.5))
+    
+}
+#plot7(annual_analysis)
 
 # ##############################################################################
 # ######################### Exploration   ######################################
@@ -359,7 +421,7 @@ plot6 <- function(annual_analysis){
 # 
 # 
 # # load duration curve
-# test_stuff <- subset(model_part4, year==2021)
+# test_stuff <- subset(model_part4, year==2014)
 # dim(test_stuff)
 # ymax <- max(test_stuff$hourly_demand_max_scale)
 # ymin = min(test_stuff$hourly_demand_max_scale)
@@ -367,7 +429,30 @@ plot6 <- function(annual_analysis){
 # hourly_dem <- test_stuff$hourly_demand_max_scale
 # x_seq <- sapply(y_seq, function(x)(sum(x <hourly_dem)))
 # df <- data.frame(x_seq=x_seq,y_seq=y_seq)
-# ggplot(df,aes(x=x_seq,y=y_seq))+geom_line(stat='identity')+ggtitle("Load Duration Curve")
+# df$avg = mean(df$y_seq)
+# ggplot(df,aes(x=x_seq,y=y_seq))+geom_line(stat='identity',size=3,colour='transparent')+
+#     stat_smooth(colour='black',size=3)+geom_line(aes(y=avg),colour='light blue',size=2)+
+#     ggtitle("Load Duration Curve Estimation for \nJJT Region in Year 2013")+
+#     xlab("Hours")+ylab("GW Demand")+
+#     theme(legend.text=element_text(size=15),
+#           legend.title=element_text(size=16,face='bold'),
+#           axis.title=element_text(size=18,face='bold'),
+#           plot.title=element_text(size=18,face='bold'),
+#           legend.position='bottom',
+#           axis.text = element_text(size=20))
+#     
+#   
+# ggplot(all_annual,aes(x=I(100*extra_trans_capacity_renewables),y=wind_pct_avg_curtail))+
+#     geom_bar(stat='identity')+
+#     ggtitle("Sensitivity Analysis for JJT 2018:\nMultiple Transmission Capacity Levels")+
+#     xlab("Extra Transmission Capacity % \nAlotted Toward Renewables")+ylab("Curtailment %")+
+#     theme(legend.text=element_text(size=15),
+#           legend.title=element_text(size=16,face='bold'),
+#           axis.title=element_text(size=18,face='bold'),
+#           plot.title=element_text(size=18,face='bold'),
+#           legend.position='bottom',
+#           axis.text = element_text(size=20))
+# 
 # # now do load duration curve for base load
 # # 
 # ymax_no_ws <- max((with(test_stuff,hourly_demand_max_scale-gwh_wind_onshore-gwh_solar)))
@@ -377,15 +462,15 @@ plot6 <- function(annual_analysis){
 # df_no_ws <- data.frame(x_seq_no_ws = x_seq_no_ws,y_seq_no_ws=y_seq_no_ws)
 # ggplot(df_no_ws,aes(x=x_seq_no_ws,y=y_seq_no_ws)) + geom_line(stat='identity') +
 #     ggtitle("Load Duration Curve for base load\n(no wind or solar)")
-# 
-# # plot hour on x
-# # on y show the sum of: wind, solar, base gen
-# # on a line show demand after T
-# 
-# 
-# # show output and demand
-# # NOTE these are summary values, we may have some silly issue 
-# # check: the demand sometimes is larger than base load
+# # 
+# # # plot hour on x
+# # # on y show the sum of: wind, solar, base gen
+# # # on a line show demand after T
+# # 
+# # 
+# # # show output and demand
+# # # NOTE these are summary values, we may have some silly issue 
+# # # check: the demand sometimes is larger than base load
 # library(tidyr)
 # demand_plot <- select(hourly_analysis, c(hour,demand_afterT_avg_gwh))
 # demand_plot <- unite(demand_plot, yearhr, year, hour)
@@ -398,7 +483,7 @@ plot6 <- function(annual_analysis){
 # ggplot(subset(all_plot,yearhr < "2018"), aes(x=yearhr,y=value,fill=gentype,group=gentype))+geom_area(position='stack')+
 #     geom_line(aes(y=demand_afterT_avg_gwh),stat='identity')#+ coord_cartesian(ylim=c(12000,18000))
 # 
-# 
+
 # 
 # 
 # ##### dual-axis plot tests

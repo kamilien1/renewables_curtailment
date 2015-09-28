@@ -4,6 +4,44 @@ author: "Azure International"
 date: "September 18, 2015"
 output: html_document
 ---
+###Plot Summaries  
+There are seven types of plots per grid simulation. All simulations were run from 
+2012 to 2025.  
+  
+- **Annual Wind Curtailment:** Percent of wind generation curtailed annually.
+- **Monthly Wind Curtailment Averaged Over all Years:** Percent of wind generation in month X curtailed. 
+Each monthly curtailment percentage is averaged over all years of our simulation.  
+- **Hourly Wind Curtailment Averaged Over all Years:** Percent of wind generation in hour X curtailed. 
+Each hourly curtailment percentage is averaged over all days, months, and years of our simulation.  
+- **1-month 2017 Hourly Average Demand and Curtailment Levels (three plots):** August, October, and December 
+1-month, dual-axis plots of averaged hourly, 24-hour load profile and percent of wind generation curtailed 
+in hour X. Demand is local demand + net outflow of transmission.  
+- **2017 Hourly Load Profile and Curtailment:**  Jan 4-10, 2017, hourly data. Below the **white** line is 
+local and scheduled net transmission demand. Below the **black** line and above the white line is the additional 
+wind and solar generation transmission outflow. **Above** the black line is the wind and solar generation that 
+is curtailed. If the black and white lines overlap, you will only see a white line.  
+- **Annual Generation Forecast:** The annual TWh of generation consumed by type.  
+- **Base Generation Utilization Hours Including Outflow Transmission:** The number of utilization hours by 
+non-wind, non-solar sources. This is a combination of local base generation and (potentially) power inflow from 
+transmission lines.
+
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
 
 
 ```{r cache=T,echo=F,include=F}
@@ -13,6 +51,9 @@ source("clean_functions_v2.R",verbose=F)
 source("function_testbed.R",verbose=F)
 source('graphing.R',verbose=F)
 ```
+
+
+
 
 ```{r,cache=T,echo=F,include=F}
 # run this data every time we want a new model
@@ -106,22 +147,22 @@ hourly_analysis <- analyze_data_hourly_v2(test_profile=model_part4)
 
 ```
 
+------
 
-
-## Simulation: Zhangjiakou Baseline
+## Simulation: Zhangjiakou Baseline 
 
 ###Parameters
 
 - *Wind Scale Factor:* **0.9**   
 - *Dispatch Period (hours):* **24**  
-- *Ratio of outflow transmission capacity available for renewables:* **0.5**  
+- *Extra outflow transmission capacity available for renewables:* **0.5**  
 - *Spinning Reserve level(100% + reserve):* **1.08**  
 - *Ratio of CHP coal to total coal:* **0.4**  
 - *Wind Hourly Model Offset Hours:* **0**  
 - *Base grid model:* **zjk**  
 - *Special subset grid model:* **zjk**  
 - *Transmission installed capacity model:* **dem_scale**  
-- *Transmission line scale level:* **1**  
+- *Transmission schedule scale factor:* **1**  
 
 
 
@@ -138,12 +179,413 @@ df <- plot4_pre_clean(model_part4)
 plot4_aug(df)
 plot4_oct(df)
 plot4_dec(df)
-plot5(model_part4,ye=2017,mo=1,days=4:10)
+plot5_double_lines(model_part4,ye=2017,mo=1,days=4:10)
 plot6(annual_analysis)
+plot7(annual_analysis)
 ```
 
 
 
+
+
+
+```{r,cache=T,echo=F,include=F}
+# run this data every time we want a new model
+source("function_testbed.R",verbose=F)
+
+gm = 'zjk'
+ssm = 'zjk'
+tm = 'dem_scale'
+ts= 1
+
+get_grid_model(gridmodel = gm,
+               special_subset_model = ssm,
+               seasonal_hourly_load=seasonal_hourly_load,
+               monthly_demand_profile=monthly_demand_profile,
+               annual_demand=annual_demand,
+               ccp_season=ccp_season,
+               generation_forecast=generation_forecast,
+               wind=wind,
+               solar_month=solar_month,
+               solar_day=solar_day,
+               t_sched=t_sched,
+               t_icap=t_icap,
+               growth_cases,
+               growth_case = 'noscale',
+               demand_scale = 1,
+               transmission_model = tm,
+               transmission_scale = ts)
+
+get_grid_model(gridmodel = gm,
+               special_subset_model = ssm,
+               seasonal_hourly_load=seasonal_hourly_load,
+               monthly_demand_profile=monthly_demand_profile,
+               annual_demand=annual_demand,
+               ccp_season=ccp_season,
+               generation_forecast=generation_forecast,
+               wind=wind,
+               solar_month=solar_month,
+               solar_day=solar_day,
+               t_sched=t_sched,
+               t_icap=t_icap,
+               growth_cases,
+               growth_case = 'noscale',
+               demand_scale = 1,
+               transmission_model = tm,
+               transmission_scale = ts)
+
+```
+
+
+```{r,cache=T,echo=F,include=F}
+# # update this every time we want a NEW simulation
+
+wsf = 0.9
+sr = 1.08
+etcr=1
+rcc = 0.4
+tp=24
+
+run_model_v2(     peak_season = c(12,1,2,6,7,8),
+                  start_year="2012",
+                  end_year="2025",
+                  wind_scale_factor=wsf,
+                  solar_scale_factor=1,
+                  time_period=tp,
+                  wind_transmission_share = 0,
+                  solar_transmission_share = 0,                  
+                  extra_trans_capacity_renewables = etcr,   
+                  gw_load_base_wind_ratio = 0,
+                  gw_load_base_solar_ratio = 0,
+                  max_option = 1,
+                  spinning_reserve=sr,
+                  r_ccp_coal = rcc,
+                  r_ccp_ng = 0.9,
+                  pmin_noccp_coal = 0.5,
+                  pmin_ccp_coal = 0.85,
+                  pmax_ccp_coal = 0.95,
+                  pmin_noccp_ng = 0.3,
+                  pmin_ccp_ng = 0.85,
+                  pmax_ccp_ng = 0.95,
+                  offset_wind_hours=0,
+                  randomize_transmission =F,
+                  transmission_sd =0.03)
+
+annual_analysis <- analyze_data_annually_v2(test_profile=model_part4) 
+monthly_analysis <- analyze_data_monthly_v2(test_profile=model_part4)
+quarterly_analysis <- analyze_data_quarterly_v2(test_profile=model_part4)
+hourly_analysis <- analyze_data_hourly_v2(test_profile=model_part4)
+
+
+
+
+```
+
+------
+
+## Simulation: Zhangjiakou Baseline High Transmission for Renewables
+
+###Parameters
+
+- *Wind Scale Factor:* **0.9**   
+- *Dispatch Period (hours):* **24**  
+- *Extra outflow transmission capacity available for renewables:* **1**  
+- *Spinning Reserve level(100% + reserve):* **1.08**  
+- *Ratio of CHP coal to total coal:* **0.4**  
+- *Wind Hourly Model Offset Hours:* **0**  
+- *Base grid model:* **zjk**  
+- *Special subset grid model:* **zjk**  
+- *Transmission installed capacity model:* **dem_scale**  
+- *Transmission schedule scale factor:* **1**  
+
+
+
+```{r,cache=T,echo=F,fig.align='center'}
+library(ggplot2,verbose=F)
+library(dplyr,verbose=F)
+library(tidyr,verbose=F)
+source('graphing.R',verbose=F)
+library(gridExtra,verbose=F)
+plot1(annual_analysis)
+plot2(monthly_analysis)
+plot3(hourly_analysis)
+df <- plot4_pre_clean(model_part4)
+plot4_aug(df)
+plot4_oct(df)
+plot4_dec(df)
+plot5_double_lines(model_part4,ye=2017,mo=1,days=4:10)
+plot6(annual_analysis)
+plot7(annual_analysis)
+```
+
+
+
+
+
+
+
+
+```{r,cache=T,echo=F,include=F}
+# run this data every time we want a new model
+source("function_testbed.R",verbose=F)
+
+# small fix
+gm = 'zjk_olympics'
+ssm = 'zjk'
+tm = 'dem_scale'
+ts= 1
+
+get_grid_model(gridmodel = gm,
+               special_subset_model = ssm,
+               seasonal_hourly_load=seasonal_hourly_load,
+               monthly_demand_profile=monthly_demand_profile,
+               annual_demand=annual_demand,
+               ccp_season=ccp_season,
+               generation_forecast=generation_forecast,
+               wind=wind,
+               solar_month=solar_month,
+               solar_day=solar_day,
+               t_sched=t_sched,
+               t_icap=t_icap,
+               growth_cases,
+               growth_case = 'noscale',
+               demand_scale = 1,
+               transmission_model = tm,
+               transmission_scale = ts)
+
+get_grid_model(gridmodel = gm,
+               special_subset_model = ssm,
+               seasonal_hourly_load=seasonal_hourly_load,
+               monthly_demand_profile=monthly_demand_profile,
+               annual_demand=annual_demand,
+               ccp_season=ccp_season,
+               generation_forecast=generation_forecast,
+               wind=wind,
+               solar_month=solar_month,
+               solar_day=solar_day,
+               t_sched=t_sched,
+               t_icap=t_icap,
+               growth_cases,
+               growth_case = 'noscale',
+               demand_scale = 1,
+               transmission_model = tm,
+               transmission_scale = ts)
+
+```
+
+
+```{r,cache=T,echo=F,include=F}
+# # update this every time we want a NEW simulation
+
+wsf = 0.9
+sr = 1.08
+etcr=0.5
+rcc = 0.4
+tp=24
+# small fix
+run_model_v2(     peak_season = c(12,1,2,6,7,8),
+                  start_year="2012",
+                  end_year="2025",
+                  wind_scale_factor=wsf,
+                  solar_scale_factor=1,
+                  time_period=tp,
+                  wind_transmission_share = 0,
+                  solar_transmission_share = 0,                  
+                  extra_trans_capacity_renewables = etcr,   
+                  gw_load_base_wind_ratio = 0,
+                  gw_load_base_solar_ratio = 0,
+                  max_option = 1,
+                  spinning_reserve=sr,
+                  r_ccp_coal = rcc,
+                  r_ccp_ng = 0.9,
+                  pmin_noccp_coal = 0.5,
+                  pmin_ccp_coal = 0.85,
+                  pmax_ccp_coal = 0.95,
+                  pmin_noccp_ng = 0.3,
+                  pmin_ccp_ng = 0.85,
+                  pmax_ccp_ng = 0.95,
+                  offset_wind_hours=0,
+                  randomize_transmission =F,
+                  transmission_sd =0.03)
+
+annual_analysis <- analyze_data_annually_v2(test_profile=model_part4) 
+monthly_analysis <- analyze_data_monthly_v2(test_profile=model_part4)
+quarterly_analysis <- analyze_data_quarterly_v2(test_profile=model_part4)
+hourly_analysis <- analyze_data_hourly_v2(test_profile=model_part4)
+
+
+
+
+```
+
+------
+
+## Simulation: Zhangjiakou Olympics
+
+###Parameters
+
+- *Wind Scale Factor:* **0.9**   
+- *Dispatch Period (hours):* **24**  
+- *Extra outflow transmission capacity available for renewables:* **0.5**  
+- *Spinning Reserve level(100% + reserve):* **1.08**  
+- *Ratio of CHP coal to total coal:* **0.4**  
+- *Wind Hourly Model Offset Hours:* **0**  
+- *Base grid model:* **zjk_olympics**  
+- *Special subset grid model:* **zjk**  
+- *Transmission installed capacity model:* **dem_scale**  
+- *Transmission schedule scale factor:* **1**  
+
+
+
+```{r,cache=T,echo=F,fig.align='center'}
+library(ggplot2,verbose=F)
+library(dplyr,verbose=F)
+library(tidyr,verbose=F)
+source('graphing.R',verbose=F)
+library(gridExtra,verbose=F)
+plot1(annual_analysis)
+plot2(monthly_analysis)
+plot3(hourly_analysis)
+df <- plot4_pre_clean(model_part4)
+plot4_aug(df)
+plot4_oct(df)
+plot4_dec(df)
+# small fix
+plot5_double_lines(model_part4,ye=2017,mo=1,days=4:10)
+plot6(annual_analysis)
+plot7(annual_analysis)
+```
+
+
+
+```{r,cache=T,echo=F,include=F}
+# run this data every time we want a new model
+source("function_testbed.R",verbose=F)
+
+gm = 'zjk_olympics'
+ssm = 'zjk'
+tm = 'dem_scale'
+ts= 1
+
+get_grid_model(gridmodel = gm,
+               special_subset_model = ssm,
+               seasonal_hourly_load=seasonal_hourly_load,
+               monthly_demand_profile=monthly_demand_profile,
+               annual_demand=annual_demand,
+               ccp_season=ccp_season,
+               generation_forecast=generation_forecast,
+               wind=wind,
+               solar_month=solar_month,
+               solar_day=solar_day,
+               t_sched=t_sched,
+               t_icap=t_icap,
+               growth_cases,
+               growth_case = 'noscale',
+               demand_scale = 1,
+               transmission_model = tm,
+               transmission_scale = ts)
+
+get_grid_model(gridmodel = gm,
+               special_subset_model = ssm,
+               seasonal_hourly_load=seasonal_hourly_load,
+               monthly_demand_profile=monthly_demand_profile,
+               annual_demand=annual_demand,
+               ccp_season=ccp_season,
+               generation_forecast=generation_forecast,
+               wind=wind,
+               solar_month=solar_month,
+               solar_day=solar_day,
+               t_sched=t_sched,
+               t_icap=t_icap,
+               growth_cases,
+               growth_case = 'noscale',
+               demand_scale = 1,
+               transmission_model = tm,
+               transmission_scale = ts)
+
+```
+
+
+```{r,cache=T,echo=F,include=F}
+# # update this every time we want a NEW simulation
+
+wsf = 0.9
+sr = 1.08
+etcr=1
+rcc = 0.4
+tp=24
+
+run_model_v2(     peak_season = c(12,1,2,6,7,8),
+                  start_year="2012",
+                  end_year="2025",
+                  wind_scale_factor=wsf,
+                  solar_scale_factor=1,
+                  time_period=tp,
+                  wind_transmission_share = 0,
+                  solar_transmission_share = 0,                  
+                  extra_trans_capacity_renewables = etcr,   
+                  gw_load_base_wind_ratio = 0,
+                  gw_load_base_solar_ratio = 0,
+                  max_option = 1,
+                  spinning_reserve=sr,
+                  r_ccp_coal = rcc,
+                  r_ccp_ng = 0.9,
+                  pmin_noccp_coal = 0.5,
+                  pmin_ccp_coal = 0.85,
+                  pmax_ccp_coal = 0.95,
+                  pmin_noccp_ng = 0.3,
+                  pmin_ccp_ng = 0.85,
+                  pmax_ccp_ng = 0.95,
+                  offset_wind_hours=0,
+                  randomize_transmission =F,
+                  transmission_sd =0.03)
+
+annual_analysis <- analyze_data_annually_v2(test_profile=model_part4) 
+monthly_analysis <- analyze_data_monthly_v2(test_profile=model_part4)
+quarterly_analysis <- analyze_data_quarterly_v2(test_profile=model_part4)
+hourly_analysis <- analyze_data_hourly_v2(test_profile=model_part4)
+
+
+
+
+```
+
+------
+
+## Simulation: Zhangjiakou Olympics High Transmission for Renewables
+
+###Parameters
+
+- *Wind Scale Factor:* **0.9**   
+- *Dispatch Period (hours):* **24**  
+- *Extra outflow transmission capacity available for renewables:* **1**  
+- *Spinning Reserve level(100% + reserve):* **1.08**  
+- *Ratio of CHP coal to total coal:* **0.4**  
+- *Wind Hourly Model Offset Hours:* **0**  
+- *Base grid model:* **zjk_olympics**  
+- *Special subset grid model:* **zjk**  
+- *Transmission installed capacity model:* **dem_scale**  
+- *Transmission schedule scale factor:* **1**  
+
+
+
+```{r,cache=T,echo=F,fig.align='center'}
+library(ggplot2,verbose=F)
+library(dplyr,verbose=F)
+library(tidyr,verbose=F)
+source('graphing.R',verbose=F)
+library(gridExtra,verbose=F)
+plot1(annual_analysis)
+plot2(monthly_analysis)
+plot3(hourly_analysis)
+df <- plot4_pre_clean(model_part4)
+plot4_aug(df)
+plot4_oct(df)
+plot4_dec(df)
+plot5_double_lines(model_part4,ye=2017,mo=1,days=4:10)
+plot6(annual_analysis)
+plot7(annual_analysis)
+```
 
 
 
@@ -245,7 +687,7 @@ hourly_analysis <- analyze_data_hourly_v2(test_profile=model_part4)
 
 ```
 
-
+------
 
 ## Simulation: Zhangjiakou Island
 
@@ -253,14 +695,14 @@ hourly_analysis <- analyze_data_hourly_v2(test_profile=model_part4)
 
 - *Wind Scale Factor:* **0.9**   
 - *Dispatch Period (hours):* **24**  
-- *Ratio of outflow transmission capacity available for renewables:* **0**  
+- *Extra outflow transmission capacity available for renewables:* **0**  
 - *Spinning Reserve level(100% + reserve):* **1.08**  
 - *Ratio of CHP coal to total coal:* **0.4**  
 - *Wind Hourly Model Offset Hours:* **0**  
 - *Base grid model:* **zjk**  
 - *Special subset grid model:* **zjk**  
 - *Transmission installed capacity model:* **dem_scale**  
-- *Transmission line scale level:* **0**  
+- *Transmission schedule scale factor:* **0**  
 
 
 
@@ -277,151 +719,12 @@ df <- plot4_pre_clean(model_part4)
 plot4_aug(df)
 plot4_oct(df)
 plot4_dec(df)
-plot5(model_part4,ye=2017,mo=1,days=4:10)
+plot5_double_lines(model_part4,ye=2017,mo=1,days=4:10)
 plot6(annual_analysis)
+plot7(annual_analysis)
 ```
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-```{r,cache=T,echo=F,include=F}
-# run this data every time we want a new model
-source("function_testbed.R",verbose=F)
-
-gm = 'zjk'
-ssm = 'zjk_olympics'
-tm = 'dem_scale'
-ts= 1
-
-get_grid_model(gridmodel = gm,
-               special_subset_model = ssm,
-               seasonal_hourly_load=seasonal_hourly_load,
-               monthly_demand_profile=monthly_demand_profile,
-               annual_demand=annual_demand,
-               ccp_season=ccp_season,
-               generation_forecast=generation_forecast,
-               wind=wind,
-               solar_month=solar_month,
-               solar_day=solar_day,
-               t_sched=t_sched,
-               t_icap=t_icap,
-               growth_cases,
-               growth_case = 'noscale',
-               demand_scale = 1,
-               transmission_model = tm,
-               transmission_scale = ts)
-
-get_grid_model(gridmodel = gm,
-               special_subset_model = ssm,
-               seasonal_hourly_load=seasonal_hourly_load,
-               monthly_demand_profile=monthly_demand_profile,
-               annual_demand=annual_demand,
-               ccp_season=ccp_season,
-               generation_forecast=generation_forecast,
-               wind=wind,
-               solar_month=solar_month,
-               solar_day=solar_day,
-               t_sched=t_sched,
-               t_icap=t_icap,
-               growth_cases,
-               growth_case = 'noscale',
-               demand_scale = 1,
-               transmission_model = tm,
-               transmission_scale = ts)
-
-```
-
-
-```{r,cache=T,echo=F,include=F}
-# # update this every time we want a NEW simulation
-
-wsf = 0.9
-sr = 1.08
-etcr=0.5
-rcc = 0.4
-tp=24
-
-run_model_v2(     peak_season = c(12,1,2,6,7,8),
-                  start_year="2012",
-                  end_year="2025",
-                  wind_scale_factor=wsf,
-                  solar_scale_factor=1,
-                  time_period=tp,
-                  wind_transmission_share = 0,
-                  solar_transmission_share = 0,                  
-                  extra_trans_capacity_renewables = etcr,   
-                  gw_load_base_wind_ratio = 0,
-                  gw_load_base_solar_ratio = 0,
-                  max_option = 1,
-                  spinning_reserve=sr,
-                  r_ccp_coal = rcc,
-                  r_ccp_ng = 0.9,
-                  pmin_noccp_coal = 0.5,
-                  pmin_ccp_coal = 0.85,
-                  pmax_ccp_coal = 0.95,
-                  pmin_noccp_ng = 0.3,
-                  pmin_ccp_ng = 0.85,
-                  pmax_ccp_ng = 0.95,
-                  offset_wind_hours=0,
-                  randomize_transmission =F,
-                  transmission_sd =0.03)
-
-annual_analysis <- analyze_data_annually_v2(test_profile=model_part4) 
-monthly_analysis <- analyze_data_monthly_v2(test_profile=model_part4)
-quarterly_analysis <- analyze_data_quarterly_v2(test_profile=model_part4)
-hourly_analysis <- analyze_data_hourly_v2(test_profile=model_part4)
-
-
-
-
-```
-
-
-
-## Simulation: Zhangjiakou Olympics
-
-###Parameters
-
-- *Wind Scale Factor:* **0.9**   
-- *Dispatch Period (hours):* **24**  
-- *Ratio of outflow transmission capacity available for renewables:* **0.5**  
-- *Spinning Reserve level(100% + reserve):* **1.08**  
-- *Ratio of CHP coal to total coal:* **0.4**  
-- *Wind Hourly Model Offset Hours:* **0**  
-- *Base grid model:* **zjk**  
-- *Special subset grid model:* **zjk_olympics**  
-- *Transmission installed capacity model:* **dem_scale**  
-- *Transmission line scale level:* **1**  
-
-
-
-```{r,cache=T,echo=F,fig.align='center'}
-library(ggplot2,verbose=F)
-library(dplyr,verbose=F)
-library(tidyr,verbose=F)
-source('graphing.R',verbose=F)
-library(gridExtra,verbose=F)
-plot1(annual_analysis)
-plot2(monthly_analysis)
-plot3(hourly_analysis)
-df <- plot4_pre_clean(model_part4)
-plot4_aug(df)
-plot4_oct(df)
-plot4_dec(df)
-plot5(model_part4,ye=2017,mo=1,days=4:10)
-plot6(annual_analysis)
-```
 
 
 
@@ -527,7 +830,7 @@ hourly_analysis <- analyze_data_hourly_v2(test_profile=model_part4)
 
 ```
 
-
+------
 
 ## Simulation: JJT Baseline
 
@@ -535,14 +838,14 @@ hourly_analysis <- analyze_data_hourly_v2(test_profile=model_part4)
 
 - *Wind Scale Factor:* **0.9**   
 - *Dispatch Period (hours):* **24**  
-- *Ratio of outflow transmission capacity available for renewables:* **0.2**  
+- *Extra outflow transmission capacity available for renewables:* **0.2**  
 - *Spinning Reserve level(100% + reserve):* **1.08**  
 - *Ratio of CHP coal to total coal:* **0.4**  
 - *Wind Hourly Model Offset Hours:* **0**  
 - *Base grid model:* **jjt**  
 - *Special subset grid model:* **jjt**  
 - *Transmission installed capacity model:* **dem_scale**  
-- *Transmission line scale level:* **1**  
+- *Transmission schedule scale factor:* **1**  
 
 
 
@@ -559,8 +862,9 @@ df <- plot4_pre_clean(model_part4)
 plot4_aug(df)
 plot4_oct(df)
 plot4_dec(df)
-plot5(model_part4,ye=2017,mo=1,days=4:10)
+plot5_double_lines(model_part4,ye=2017,mo=1,days=4:10)
 plot6(annual_analysis)
+plot7(annual_analysis)
 ```
 
 
@@ -671,7 +975,7 @@ hourly_analysis <- analyze_data_hourly_v2(test_profile=model_part4)
 
 ```
 
-
+------
 
 ## Simulation: JJT Olmpics
 
@@ -679,14 +983,14 @@ hourly_analysis <- analyze_data_hourly_v2(test_profile=model_part4)
 
 - *Wind Scale Factor:* **0.9**   
 - *Dispatch Period (hours):* **24**  
-- *Ratio of outflow transmission capacity available for renewables:* **0.2**  
+- *Extra outflow transmission capacity available for renewables:* **0.2**  
 - *Spinning Reserve level(100% + reserve):* **1.08**  
 - *Ratio of CHP coal to total coal:* **0.4**  
 - *Wind Hourly Model Offset Hours:* **0**  
 - *Base grid model:* **jjt_olympics**  
 - *Special subset grid model:* **jjt**  
 - *Transmission installed capacity model:* **dem_scale**  
-- *Transmission line scale level:* **1**  
+- *Transmission schedule scale factor:* **1**  
 
 
 
@@ -703,8 +1007,9 @@ df <- plot4_pre_clean(model_part4)
 plot4_aug(df)
 plot4_oct(df)
 plot4_dec(df)
-plot5(model_part4,ye=2017,mo=1,days=4:10)
+plot5_double_lines(model_part4,ye=2017,mo=1,days=4:10)
 plot6(annual_analysis)
+plot7(annual_analysis)
 ```
 
 
@@ -816,7 +1121,7 @@ hourly_analysis <- analyze_data_hourly_v2(test_profile=model_part4)
 
 ```
 
-
+------
 
 ## Simulation: EIMAR Baseline
 
@@ -824,14 +1129,14 @@ hourly_analysis <- analyze_data_hourly_v2(test_profile=model_part4)
 
 - *Wind Scale Factor:* **1.2**   
 - *Dispatch Period (hours):* **24**  
-- *Ratio of outflow transmission capacity available for renewables:* **0**  
+- *Extra outflow transmission capacity available for renewables:* **0**  
 - *Spinning Reserve level(100% + reserve):* **1.15**  
 - *Ratio of CHP coal to total coal:* **0.23**  
 - *Wind Hourly Model Offset Hours:* **0**  
 - *Base grid model:* **eimar**  
 - *Special subset grid model:* **eimar**  
 - *Transmission installed capacity model:* **hlbe_scale**  
-- *Transmission line scale level:* **0.65**  
+- *Transmission schedule scale factor:* **0.65**  
 
 
 
@@ -848,8 +1153,9 @@ df <- plot4_pre_clean(model_part4)
 plot4_aug(df)
 plot4_oct(df)
 plot4_dec(df)
-plot5(model_part4,ye=2017,mo=1,days=4:10)
+plot5_double_lines(model_part4,ye=2017,mo=1,days=4:10)
 plot6(annual_analysis)
+plot7(annual_analysis)
 ```
 
 
@@ -960,7 +1266,7 @@ hourly_analysis <- analyze_data_hourly_v2(test_profile=model_part4)
 
 ```
 
-
+------
 
 ## Simulation: HLBE Baseline
 
@@ -968,14 +1274,14 @@ hourly_analysis <- analyze_data_hourly_v2(test_profile=model_part4)
 
 - *Wind Scale Factor:* **1.4**   
 - *Dispatch Period (hours):* **24**  
-- *Ratio of outflow transmission capacity available for renewables:* **0**  
+- *Extra outflow transmission capacity available for renewables:* **0**  
 - *Spinning Reserve level(100% + reserve):* **1.15**  
 - *Ratio of CHP coal to total coal:* **0.18**  
 - *Wind Hourly Model Offset Hours:* **0**  
 - *Base grid model:* **hlbe**  
-- *Special subset grid hlbe:* **hlbe**  
+- *Special subset grid:* **hlbe**  
 - *Transmission installed capacity model:* **hlbe_scale**  
-- *Transmission line scale level:* **0.65**  
+- *Transmission schedule scale factor:* **0.65**  
 
 
 
@@ -992,8 +1298,9 @@ df <- plot4_pre_clean(model_part4)
 plot4_aug(df)
 plot4_oct(df)
 plot4_dec(df)
-plot5(model_part4,ye=2017,mo=1,days=4:10)
+plot5_double_lines(model_part4,ye=2017,mo=1,days=4:10)
 plot6(annual_analysis)
+plot7(annual_analysis)
 ```
 
 
@@ -1105,7 +1412,7 @@ hourly_analysis <- analyze_data_hourly_v2(test_profile=model_part4)
 
 ```
 
-
+------
 
 ## Simulation: HLE Baseline
 
@@ -1113,14 +1420,14 @@ hourly_analysis <- analyze_data_hourly_v2(test_profile=model_part4)
 
 - *Wind Scale Factor:* **1.4**   
 - *Dispatch Period (hours):* **24**  
-- *Ratio of outflow transmission capacity available for renewables:* **0**  
+- *Extra outflow transmission capacity available for renewables:* **0**  
 - *Spinning Reserve level(100% + reserve):* **1.15**  
 - *Ratio of CHP coal to total coal:* **1**  
 - *Wind Hourly Model Offset Hours:* **0**  
 - *Base grid model:* **hle**  
-- *Special subset grid hlbe:* **hle**  
+- *Special subset grid:* **hle**  
 - *Transmission installed capacity model:* **hlbe_scale**  
-- *Transmission line scale level:* **0.65**  
+- *Transmission schedule scale factor:* **0.65**  
 
 
 
@@ -1137,8 +1444,9 @@ df <- plot4_pre_clean(model_part4)
 plot4_aug(df)
 plot4_oct(df)
 plot4_dec(df)
-plot5(model_part4,ye=2017,mo=1,days=4:10)
+plot5_double_lines(model_part4,ye=2017,mo=1,days=4:10)
 plot6(annual_analysis)
+plot7(annual_analysis)
 ```
 
 
@@ -1255,7 +1563,7 @@ hourly_analysis <- analyze_data_hourly_v2(test_profile=model_part4)
 
 ```
 
-
+------
 
 ## Simulation: YM Baseline
 
@@ -1263,14 +1571,14 @@ hourly_analysis <- analyze_data_hourly_v2(test_profile=model_part4)
 
 - *Wind Scale Factor:* **1.4**   
 - *Dispatch Period (hours):* **24**  
-- *Ratio of outflow transmission capacity available for renewables:* **0**  
+- *Extra outflow transmission capacity available for renewables:* **0**  
 - *Spinning Reserve level(100% + reserve):* **1.15**  
 - *Ratio of CHP coal to total coal:* **0**  
 - *Wind Hourly Model Offset Hours:* **0**  
 - *Base grid model:* **ym**  
-- *Special subset grid hlbe:* **ym**  
+- *Special subset grid :* **ym**  
 - *Transmission installed capacity model:* **hlbe_scale**  
-- *Transmission line scale level:* **0.65**  
+- *Transmission schedule scale factor:* **0.65**  
 
 
 
@@ -1287,8 +1595,9 @@ df <- plot4_pre_clean(model_part4)
 plot4_aug(df)
 plot4_oct(df)
 plot4_dec(df)
-plot5(model_part4,ye=2017,mo=1,days=4:10)
+plot5_double_lines(model_part4,ye=2017,mo=1,days=4:10)
 plot6(annual_analysis)
+plot7(annual_analysis)
 ```
 
 
